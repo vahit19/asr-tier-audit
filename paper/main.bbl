@@ -1,0 +1,99 @@
+\begin{thebibliography}{14}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Card et~al.(2020)Card, Henderson, Khandelwal, Jia, Mahowald, and
+  Jurafsky]{card2020power}
+Dallas Card, Peter Henderson, Urvashi Khandelwal, Robin Jia, Kyle Mahowald, and
+  Dan Jurafsky.
+\newblock With little power comes great responsibility.
+\newblock In \emph{Proceedings of the 2020 Conference on Empirical Methods in
+  Natural Language Processing}, 2020.
+\newblock URL \url{https://aclanthology.org/2020.emnlp-main.745/}.
+
+\bibitem[{Cartesia}(2026)]{cartesia2026sonic36}
+{Cartesia}.
+\newblock Introducing {Sonic-3.6}.
+\newblock \url{https://cartesia.ai/blog/sonic-3.6}, 2026.
+\newblock Published 2026-08-27, accessed 2026-10-08.
+
+\bibitem[Conneau et~al.(2022)Conneau, Ma, Khanuja, Zhang, Axelrod, Dalmia,
+  Riesa, Rivera, and Bapna]{conneau2022fleurs}
+Alexis Conneau, Min Ma, Simran Khanuja, Yu~Zhang, Vera Axelrod, Siddharth
+  Dalmia, Jason Riesa, Clara Rivera, and Ankur Bapna.
+\newblock {FLEURS}: Few-shot learning evaluation of universal representations
+  of speech.
+\newblock \emph{arXiv preprint arXiv:2205.12446}, 2022.
+
+\bibitem[{ElevenLabs}(2026{\natexlab{a}})]{elevenlabs2026sttdocs}
+{ElevenLabs}.
+\newblock Transcription ({ElevenLabs} documentation), section ``breakdown of
+  language support''.
+\newblock
+  \url{https://elevenlabs.io/docs/overview/capabilities/speech-to-text},
+  2026{\natexlab{a}}.
+\newblock Accessed 2026-10-08.
+
+\bibitem[{ElevenLabs}(2026{\natexlab{b}})]{elevenlabs2026v4}
+{ElevenLabs}.
+\newblock {E}leven v4: Our most expressive text-to-speech {AI} model yet.
+\newblock \url{https://elevenlabs.io/blog/eleven-v4}, 2026{\natexlab{b}}.
+\newblock Published 2026-09-28, accessed 2026-10-08.
+
+\bibitem[Gao et~al.(2026)Gao, Zhang, Xie, Jing, Wang, and Liu]{gao2026anytime}
+Hongfu Gao, Songxin Zhang, Zejian Xie, Bingyi Jing, Zhou Wang, and Yiming Liu.
+\newblock Anytime-valid {LLM} leaderboards via benchmark-weighted and
+  block-factorized e-processes.
+\newblock \emph{arXiv preprint arXiv:2609.32248}, 2026.
+
+\bibitem[Kacprzak \& Fra{\'s}(2026)Kacprzak and Fra{\'s}]{kacprzak2026digits}
+Stanis{\l}aw Kacprzak and Mieszko Fra{\'s}.
+\newblock The hidden cost of digits: Number normalization and {WER} in {ASR}
+  systems.
+\newblock \emph{arXiv preprint arXiv:2609.21084}, 2026.
+
+\bibitem[Liu \& Peng(2019)Liu and Peng]{liu2019blockwise}
+Zhe Liu and Fuchun Peng.
+\newblock Statistical testing on {ASR} performance via blockwise bootstrap.
+\newblock \emph{arXiv preprint arXiv:1912.09508}, 2019.
+
+\bibitem[Liu \& Peng(2022)Liu and Peng]{liu2022dependent}
+Zhe Liu and Fuchun Peng.
+\newblock Modeling dependent structure for utterances in {ASR} evaluation.
+\newblock \emph{arXiv preprint arXiv:2209.05281}, 2022.
+
+\bibitem[Miller(2024)]{miller2024errorbars}
+Evan Miller.
+\newblock Adding error bars to evals: A statistical approach to language model
+  evaluations.
+\newblock \emph{arXiv preprint arXiv:2411.00640}, 2024.
+
+\bibitem[Pattnayak(2026)]{pattnayak2026snwer}
+Priyaranjan Pattnayak.
+\newblock {SN-WER}: Script-normalized {WER} for multi-script {I}ndic {ASR}
+  evaluation.
+\newblock \emph{arXiv preprint arXiv:2606.02548}, 2026.
+
+\bibitem[Radford et~al.(2022)Radford, Kim, Xu, Brockman, McLeavey, and
+  Sutskever]{radford2022whisper}
+Alec Radford, Jong~Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and
+  Ilya Sutskever.
+\newblock Robust speech recognition via large-scale weak supervision.
+\newblock \emph{arXiv preprint arXiv:2212.04356}, 2022.
+
+\bibitem[Waudby-Smith \& Ramdas(2020)Waudby-Smith and
+  Ramdas]{waudbysmith2020betting}
+Ian Waudby-Smith and Aaditya Ramdas.
+\newblock Estimating means of bounded random variables by betting.
+\newblock \emph{arXiv preprint arXiv:2010.09686}, 2020.
+
+\bibitem[Zhou et~al.(2026)Zhou, Vossler, Sivaraman, Mai, and
+  Feng]{zhou2026adaptive}
+Siyu Zhou, Patrick Vossler, Venkatesh Sivaraman, Yifan Mai, and Jean Feng.
+\newblock Adaptive auditing of {AI} systems with anytime-valid guarantees.
+\newblock \emph{arXiv preprint arXiv:2605.07002}, 2026.
+
+\end{thebibliography}

@@ -1,0 +1,294 @@
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Speech recognition vendors publish per-language accuracy tiers such as ``Excellent ($\le$5\% WER)'' without naming the test set, the text normalizer or the scoring unit. We measure how much those unstated choices move the answer, and we give a test that certifies or refutes a tier claim from as little audio as the data allow. We transcribed 200 FLEURS test utterances in each of six languages that one vendor lists as $\le$5\% WER, and scored them under three word-level normalizers and one character-level scheme, with intervals from a sentence-cluster bootstrap. For five of the six languages the verdict depends on these choices: Finnish scores 3.22\% [2.43, 4.04] with a language-aware normalizer and 5.44\% [4.07, 6.84] with Whisper's basic normalizer, and Malayalam scores 19.95\% at the word level but 6.00\% at the character level. Two mechanisms in the widely used Whisper normalizer explain most of the gap: it deletes bracketed text that FLEURS speakers read aloud (+0.7 to +2.2 points in five languages), and it splits words at combining marks, which lowers Malayalam and Kannada word error by 9 to 11 points and splits Turkish \emph{\.I}. For certification we sample utterances with probability proportional to reference length, which turns corpus WER into a bounded mean, and run two betting tests that stay valid at any stopping time. In simulation they refuted the two failing languages after a median of 17 and 27 utterances, certified three passing languages after 477 to 673, and decided wrongly in at most 4\% of runs set exactly at the bound. A tier claim is checkable only when it names its normalizer and unit.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Speech recognition is now bought as a service, and buyers compare services through the accuracy numbers vendors publish. For multilingual systems these numbers increasingly arrive as tiers: a language is ``Excellent'' if its word error rate (WER) is at most 5\%, ``High Accuracy'' up to 10\%, and so on. One current tier table places 36 languages, from Turkish and Finnish to Malayalam and Japanese, in the $\le$5\% tier \citep{elevenlabs2026sttdocs}. A buyer choosing a system for Turkish call-centre audio or Malayalam broadcast captions reads such a table as a statement about what the system will do on their data.
+
+WER is not a property of a transcript alone. Before words are compared, both the reference and the hypothesis are passed through a text normalizer that decides case, punctuation, apostrophes, numbers and how a script's combining marks are treated. The normalizer released with Whisper \citep{radford2022whisper} has become a common multilingual default. For English the effect of normalization is well known; for other languages it has been measured one mechanism at a time, for numerals in Polish \citep{kacprzak2026digits} and for script mismatch in Indic languages \citep{pattnayak2026snwer}. The intervals around WER have their own difficulty: utterances that share a speaker or a sentence are not independent, so a naive bootstrap is too narrow \citep{liu2019blockwise,liu2022dependent}. A tier table states neither the normalizer nor an interval. We therefore cannot currently tell, for a given language, whether a published tier holds on public data, and if not, whether the system or the measurement is the cause.
+
+A second gap is practical. Someone checking a claim pays for every transcribed minute and would like to stop as soon as the evidence is clear. Stopping when the running estimate looks decisive invalidates a fixed-sample test. Anytime-valid inference removes that problem and has recently been applied to LLM leaderboards \citep{gao2026anytime} and to adaptive audits of AI systems \citep{zhou2026adaptive}. To our knowledge it has not been applied to per-language accuracy tiers, where the target is a ratio of error counts to word counts and the data are clustered.
+
+We make three contributions.
+\begin{enumerate}
+  \item \textbf{A measurement of how much tier verdicts depend on unstated scoring choices.} On 200 FLEURS test utterances per language, the verdict on a $\le$5\% claim changes with the normalizer or the unit in five of six languages that one vendor lists in that tier (\S\ref{sec:results-tiers}).
+  \item \textbf{An attribution of the gap to specific mechanisms,} each switched off in turn: bracket deletion and combining-mark splitting in the Whisper normalizer, the dotted capital \emph{\.I}, and numerals (\S\ref{sec:results-mech}).
+  \item \textbf{An anytime-valid tier test.} Length-proportional sampling makes corpus WER the mean of a bounded per-draw loss, so a pair of betting tests \citep{waudbysmith2020betting} can certify or refute a claim and stop at any time. We report its decisions, the audio it needs, and its error rate at the bound, and show that published blind-preference shares reduce to the same test (\S\ref{sec:method}, \S\ref{sec:results-seq}, \S\ref{sec:results-pref}).
+\end{enumerate}
+Transcripts, code, tables and figures are released, and every number in the paper regenerates without API access.
+
+\section{Related work}
+\label{sec:related}
+
+\textbf{Normalization and the meaning of WER.} The Whisper paper introduced a text normalizer so that its outputs could be compared with references written in other styles, with an English-specific normalizer and a basic multilingual one \citep{radford2022whisper}. Later work measured individual normalization effects in other languages. \citet{kacprzak2026digits} showed for Polish that leaving numbers unnormalized can change WER substantially, and \citet{pattnayak2026snwer} transliterated both sides into a canonical script before scoring Indic ASR, which reduced inflated gaps between models on FLEURS. These studies isolate one mechanism in one language family and ask how to score fairly; we ask how far the set of defensible choices spreads a single system's score around a published threshold, across scripts.
+
+\textbf{Uncertainty in ASR evaluation.} Bootstrap intervals are the usual tool for WER significance, and \citet{liu2019blockwise} showed that utterances from the same speaker are correlated, proposing a blockwise bootstrap; \citet{liu2022dependent} estimated the blocks from data. In NLP more broadly, \citet{card2020power} found many comparisons underpowered and \citet{miller2024errorbars} argued for standard errors and clustered designs in model evaluation. FLEURS has its own dependence: several speakers read each sentence \citep{conneau2022fleurs}, so the sentence is the natural cluster.
+
+\textbf{Anytime-valid evaluation.} Testing by betting builds a nonnegative wealth process whose growth is evidence against a null, and Ville's inequality bounds the chance that it ever crosses $1/\alpha$; \citet{waudbysmith2020betting} developed this into confidence sequences for bounded means. \citet{gao2026anytime} used e-processes to certify pairwise advantages on LLM leaderboards with anytime-valid error control, and \citet{zhou2026adaptive} built tests for adaptive audits in which sampling and stopping are decided during data collection.
+
+What remains open is a per-language accuracy claim, where the quantity is a ratio of clustered counts and the threshold is set by the claimant. It is not known how often the scoring choices alone decide such a claim, and there is no test for it that may stop whenever the evidence is sufficient.
+
+\section{Method}
+\label{sec:method}
+
+Figure~\ref{fig:pipeline} summarises the procedure: a claim, a sampling design, transcription, a normalizer, a bounded per-draw loss, and two betting tests that may stop after any draw.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig1_pipeline.pdf}
+\caption{The audit procedure for a tier or preference claim.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Tier claims and error measures}
+
+A tier claim states that a system's error rate on language $L$ is at most $\tau$, here $\tau = 0.05$. For utterance $i$ with reference $r_i$ and hypothesis $h_i$, both are passed through a normalizer $g$; the edit distance between the token sequences gives $E_i$ (substitutions, deletions and insertions) and the reference length $N_i$. Corpus WER over a set $S$ is $\sum_{i\in S} E_i / \sum_{i\in S} N_i$.
+
+We score every utterance under four normalizers. \emph{Whisper basic} is the \texttt{BasicTextNormalizer} released with Whisper, a common multilingual default. \emph{Language-aware (joined)} applies locale-correct lower-casing (Turkish \emph{I}$\to$\emph{ı} and \emph{\.I}$\to$\emph{i}), Unicode NFC, a mapping that unifies the atomic and legacy encodings of Malayalam chillu letters and drops zero-width joiners, and removes Unicode punctuation and symbols, joining apostrophe-separated suffixes (\emph{İstanbul'da}$\to$\emph{istanbulda}). \emph{Language-aware (split)} is the same but splits at apostrophes. \emph{Character level} applies the joined normalizer and scores characters with spaces removed, so word segmentation no longer counts. Japanese has no spaces between words and is scored on characters under every scheme.
+
+\subsection{Intervals that respect sentence clusters}
+
+In FLEURS several speakers read the same sentence, so their errors are correlated through the text. We resample whole sentences: for each bootstrap replicate we draw sentences with replacement, sum $E_i$ and $N_i$ over every sampled utterance of each drawn sentence, and take the ratio. We report percentile intervals from 4{,}000 replicates and compare their width with a bootstrap that resamples utterances.
+
+\subsection{Length-proportional sampling turns WER into a mean}
+
+A sequential test needs a per-draw quantity whose mean is the target. Suppose an auditor draws utterance $i$ from the test frame with probability $p_i = N_i / \sum_j N_j$, which is known in advance because the references are known. Then the per-utterance rate $X = E_I/N_I$ of the drawn utterance $I$ satisfies
+\begin{equation}
+  \mathbb{E}[X] \;=\; \sum_i \frac{N_i}{\sum_j N_j}\,\frac{E_i}{N_i} \;=\; \frac{\sum_i E_i}{\sum_i N_i},
+\end{equation}
+which is the corpus WER of the frame. $X$ can exceed 1 when a hypothesis has many insertions, so we cap it at $c$ and work with $Y = \min(X, c)/c \in [0, 1]$. The claim ``WER $\le \tau$'' becomes $\mathbb{E}[Y] \le m$ with $m = \tau/c$, exactly when no utterance exceeds the cap. We use $c = 2$ and report how often the cap binds.
+
+\subsection{A pair of betting tests}
+
+Two wealth processes start at 1 and are updated after every draw $t$:
+\begin{equation}
+  K^{\mathrm{cert}}_t = \prod_{s \le t} \bigl(1 + \lambda^{\mathrm{c}}_s (m - Y_s)\bigr), \qquad
+  K^{\mathrm{ref}}_t  = \prod_{s \le t} \bigl(1 + \lambda^{\mathrm{r}}_s (Y_s - m)\bigr).
+\end{equation}
+If the true mean is at least $m$ (the claim fails), each factor of $K^{\mathrm{cert}}$ has expectation at most 1 for any bet $\lambda^{\mathrm{c}}_s \ge 0$ fixed before $Y_s$ is seen. $K^{\mathrm{cert}}$ is then a nonnegative supermartingale, and by Ville's inequality it reaches $1/\alpha$ with probability at most $\alpha$ at any time. The same holds for $K^{\mathrm{ref}}$ when the claim holds. We certify when $K^{\mathrm{cert}}$ first reaches $1/\alpha$, refute when $K^{\mathrm{ref}}$ does, and otherwise report the audit as undecided. Nonnegativity requires $\lambda^{\mathrm{c}} < 1/(1-m)$ and $\lambda^{\mathrm{r}} < 1/m$; we truncate at half these values. Bets follow the predictable plug-in rule of \citet{waudbysmith2020betting},
+\begin{equation}
+  \lambda_t = \min\Bigl(\sqrt{\tfrac{2\log(1/\alpha)}{\hat\sigma^2_{t-1}\, t \log(t+1)}},\ \lambda_{\max}\Bigr),
+\end{equation}
+where $\hat\sigma^2_{t-1}$ is a running variance with prior $1/4$. We use $\alpha = 0.05$ for each test.
+
+The asymmetry between the two bounds matters later. For a 5\% tier and $c = 2$, $m = 0.025$, so refutation may bet up to 20 while certification may bet only about 0.5: a draw can always turn out to be a total failure ($Y = 1$), and the certifying bettor must survive it.
+
+\subsection{Preference claims}
+
+A blind-preference share $p$ (``listeners preferred A in $p$ of head-to-head tests'') is a claim that the loss $1 - w$, with $w = 1$ for a win, has mean below $0.5$. It is the same test with $c = 1$ and $m = 0.5$. For each published share we compute three numbers. The first is the smallest number of independent votes at which an exact one-sided binomial test of 50\% rejects at the observed share. The second inflates it for votes clustered by listener or by line, through the design effect $1 + (k-1)\rho$ with $k = 20$ votes per cluster. The third is the median number of votes the betting test needs when $p$ is the true rate.
+
+\section{Experimental setup}
+\label{sec:setup}
+
+\textbf{Data.} We used the FLEURS test split \citep{conneau2022fleurs} for six languages listed in the vendor's ``Excellent ($\le$5\% WER)'' tier for Scribe v2 \citep{elevenlabs2026sttdocs}: Turkish (743 test utterances, 329 sentences), Finnish (918, 348), Hungarian (905, 348), Malayalam (958, 344), Kannada (838, 344) and Japanese (650, 321). From each we drew 200 utterances uniformly with seed 0, giving 158 to 169 distinct sentences per language and 4.43 hours of audio in total. References are the raw FLEURS transcriptions, with case and punctuation.
+
+\textbf{System.} Every utterance was transcribed once through the vendor's batch speech-to-text API on 8 October 2026 with model \texttt{scribe\_v2}, the ISO language code supplied, audio-event tags off and timestamps off (Appendix~\ref{app:settings}). Responses are cached, so all scores replay offline.
+
+\textbf{Scoring.} WER and character error were computed with \texttt{jiwer} 4.0.0 after each normalizer; the Whisper normalizer is the \texttt{whisper-normalizer} 0.1.15 package. The mechanism analysis switches one behaviour off at a time inside the Whisper normalizer: first bracket deletion (brackets are replaced by spaces before normalizing), then the dotted-\emph{\.I} split (\emph{\.I} is lower-cased correctly beforehand). The remaining difference to the language-aware joined score is reported as a residual. The effect of numerals is estimated by rescoring without the utterances whose reference or hypothesis contains a digit.
+
+\textbf{Sequential simulation.} The 200 transcribed utterances of each language serve as a finite population. Each simulated audit draws up to 3{,}000 utterances with replacement and length-proportional probabilities, runs both tests, and records the decision, the number of draws and the audio duration consumed. We ran 500 audits at $\tau = 5\%$ and 500 with $\tau$ set equal to the population WER, where any decision is an error. Two fixed-sample references give scale. The first is the smallest $n$ at which a one-sided Hoeffding bound on $Y \in [0,1]$ separates the true mean from $m$; it has the same distribution-free validity. The second is the $n$ a one-sided $z$-test needs for 80\% power when the true WER and the variance of $X$ are known in advance, which no auditor has.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Tier verdicts under four normalizers}
+\label{sec:results-tiers}
+
+Table~\ref{tab:tiers} and Figure~\ref{fig:tiers} give the error rate of each language under each scheme. For Turkish and Finnish the language-aware intervals lie wholly below 5\% (Turkish 2.55\% [1.77, 3.46], Finnish 3.22\% [2.43, 4.04]), while the Whisper-basic intervals contain 5\% (Turkish 4.74\% [3.43, 6.21], Finnish 5.44\% [4.07, 6.84]). Hungarian is above 5\% under Whisper basic (7.46\% [6.00, 8.95]), straddles it under both language-aware word schemes (5.47\% [4.37, 6.58] joined) and is below it at the character level (2.46\% [1.75, 3.21]). Malayalam and Kannada are far above 5\% under every word-level scheme, with their highest values under the language-aware normalizer (19.95\% and 15.12\%), and their character-level intervals contain 5\% (6.00\% [4.71, 7.41] and 4.63\% [3.63, 5.74]). Japanese, scored on characters throughout, was below 5\% under every scheme (2.55\% [1.90, 3.28]). Apostrophe handling mattered only in Turkish, where splitting suffixes raised WER from 2.55\% to 3.72\%.
+
+Sentence-cluster intervals were 3\% to 18\% wider than intervals from resampling utterances, across all 24 language--scheme pairs.
+
+\begin{table}[t]
+\caption{Error rate (\%) of Scribe v2 on 200 FLEURS test utterances per language, with 95\% sentence-cluster bootstrap intervals. All six languages are listed by the vendor as $\le$5\% WER. Japanese is scored on characters under every scheme.}
+\label{tab:tiers}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+Language & Whisper basic & Language-aware, joined & Language-aware, split & Character level \\
+\midrule
+Turkish   & 4.74 [3.43, 6.21] & 2.55 [1.77, 3.46] & 3.72 [2.73, 4.82] & 0.98 [0.63, 1.40] \\
+Finnish   & 5.44 [4.07, 6.84] & 3.22 [2.43, 4.04] & 3.28 [2.47, 4.13] & 1.61 [0.91, 2.45] \\
+Hungarian & 7.46 [6.00, 8.95] & 5.47 [4.37, 6.58] & 5.52 [4.42, 6.63] & 2.46 [1.75, 3.21] \\
+Malayalam & 10.58 [8.84, 12.46] & 19.95 [17.41, 22.36] & 20.01 [17.48, 22.44] & 6.00 [4.71, 7.41] \\
+Kannada   & 6.99 [5.70, 8.49] & 15.12 [13.22, 17.23] & 15.18 [13.28, 17.26] & 4.63 [3.63, 5.74] \\
+Japanese  & 2.60 [1.94, 3.37] & 2.55 [1.90, 3.28] & 2.55 [1.90, 3.28] & 2.55 [1.90, 3.28] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig2_wer_by_normalizer.pdf}
+\caption{Error rate by normalizer, with 95\% sentence-cluster intervals. Dashed line: the 5\% bound of the published tier.}
+\label{fig:tiers}
+\end{figure}
+
+\subsection{Where the spread comes from}
+\label{sec:results-mech}
+
+Table~\ref{tab:mech} and Figure~\ref{fig:mech} decompose the gap between the Whisper-basic and language-aware joined scores. Bracket deletion added 0.85, 2.15, 1.94, 1.68 and 0.67 points in Turkish, Finnish, Hungarian, Malayalam and Kannada, where 14 to 24 of the 200 references contain bracketed text; Japanese had one such reference and 0.05 points. In the Finnish sentence \emph{``\dots\ viivat risteävät (katso esimerkkiä).''} the normalizer removes \emph{katso esimerkkiä} from the reference, the system transcribes both words, and both count as insertions. The dotted capital \emph{\.I}, present in 16 Turkish references, added 0.17 points: lower-casing produces \emph{i} followed by a combining dot, which the normalizer replaces with a space, so \emph{\.IZM\.IR} becomes three tokens, \emph{i zmi r}.
+
+The residual is positive in Turkish (1.17 points), where the Whisper normalizer splits apostrophe suffixes, and strongly negative in Malayalam ($-11.05$) and Kannada ($-8.81$). In those two scripts vowel signs and the virama are combining marks, and the normalizer turns each into a space; Malayalam references grew from 3{,}063 words to 11{,}438 tokens and Kannada from 3{,}101 to 9{,}600, so the score is computed over word fragments.
+
+Excluding utterances with digits lowered the language-aware score in every language, by 0.67 (Japanese) to 3.30 points (Malayalam). In Hungarian it moved the score from 5.47\% to 3.88\% over the 159 remaining utterances.
+
+\begin{table}[t]
+\caption{Decomposition of the Whisper-basic score relative to the language-aware joined score (points). Counts are out of 200 references (brackets, \emph{\.I}) or 200 utterance pairs (digits).}
+\label{tab:mech}
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{Count} & \multicolumn{3}{c}{Whisper basic minus language-aware} & No-digit \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Language & brackets & \emph{\.I} & digits & bracket deletion & \emph{\.I} split & residual & change \\
+\midrule
+Turkish   & 14 & 16 & 43 & $+0.85$ & $+0.17$ & $+1.17$ & $-0.88$ \\
+Finnish   & 22 & 0 & 30 & $+2.15$ & 0.00 & $+0.06$ & $-0.74$ \\
+Hungarian & 24 & 0 & 41 & $+1.94$ & 0.00 & $+0.05$ & $-1.59$ \\
+Malayalam & 22 & 0 & 54 & $+1.68$ & 0.00 & $-11.05$ & $-3.30$ \\
+Kannada   & 22 & 0 & 37 & $+0.67$ & 0.00 & $-8.81$ & $-2.30$ \\
+Japanese  & 1 & 0 & 69 & $+0.05$ & 0.00 & 0.00 & $-0.67$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig3_mechanisms.pdf}
+\caption{Change in error rate relative to the language-aware joined score, by mechanism. Bars: switching one behaviour of the Whisper normalizer off. Diamonds: removing utterances that contain digits.}
+\label{fig:mech}
+\end{figure}
+
+\subsection{Certifying and refuting the claim}
+\label{sec:results-seq}
+
+Table~\ref{tab:seq} reports 500 simulated audits per row, and Figure~\ref{fig:traj} shows one audit per language. Under the language-aware normalizer every audit certified Turkish, Finnish and Japanese, after a median of 477, 673 and 479 draws (114, 162 and 109 minutes of audio), and every audit refuted Malayalam and Kannada, after a median of 17 and 27 draws (4.7 and 6.5 minutes). Hungarian, at 5.47\%, was refuted in 76.6\% of audits, after a median of 1{,}564 draws among those that decided, and the rest were undecided at 3{,}000. Under Whisper basic, Turkish (4.74\%) and Finnish (5.44\%) were undecided in 92.6\% and 57.8\% of audits.
+
+With $\tau$ set equal to the population WER, the fraction of audits that reached any decision was between 0\% and 4.0\% across the twelve settings.
+
+The two fixed-sample references bracket these numbers (Figure~\ref{fig:audio}). The Hoeffding bound, valid under the same assumptions, needed 9{,}978 draws for Turkish and 268 for Malayalam under the language-aware normalizer, between 16 and 458 times the sequential medians across all twelve settings. The oracle $z$-test needed fewer draws than the sequential test in ten of twelve settings (for example 31 for Turkish) and more in two, Turkish (9{,}954) and Finnish (2{,}681) under Whisper basic.
+
+The cap bound in one utterance under Whisper basic in Hungarian and in none under the language-aware normalizer. With $c = 1$ the certification medians roughly halved (240 draws for Turkish), but up to 2 utterances per setting exceeded that cap and the error rate at the bound rose to 7.0\% (Hungarian, Whisper basic) and 6.2\% (Malayalam, language-aware).
+
+\begin{table}[t]
+\caption{Simulated audits of the $\le$5\% claim (500 per row, up to 3{,}000 draws). Medians are over audits that reached a decision. Boundary error: share of 500 audits that decided when $\tau$ equals the population WER.}
+\label{tab:seq}
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{llrrrrrrr}
+\toprule
+Language & Normalizer & WER & certify & refute & median draws & median min & Hoeffding $n$ & boundary err. \\
+\midrule
+Turkish   & Whisper  & 4.74 & 0.072 & 0.002 & 2{,}008 & 480.6 & 919{,}447 & 0.020 \\
+          & language & 2.55 & 1.000 & 0.000 & 477 & 114.1 & 9{,}978 & 0.002 \\
+Finnish   & Whisper  & 5.44 & 0.000 & 0.422 & 1{,}556 & 377.5 & 311{,}939 & 0.008 \\
+          & language & 3.22 & 1.000 & 0.000 & 673 & 162.1 & 18{,}948 & 0.000 \\
+Hungarian & Whisper  & 7.46 & 0.000 & 1.000 & 178 & 40.1 & 9{,}940 & 0.008 \\
+          & language & 5.47 & 0.000 & 0.766 & 1{,}564 & 354.1 & 271{,}963 & 0.010 \\
+Malayalam & Whisper  & 10.58 & 0.000 & 1.000 & 60 & 17.3 & 1{,}925 & 0.040 \\
+          & language & 19.95 & 0.000 & 1.000 & 17 & 4.7 & 268 & 0.026 \\
+Kannada   & Whisper  & 6.99 & 0.000 & 1.000 & 244 & 59.9 & 15{,}136 & 0.018 \\
+          & language & 15.12 & 0.000 & 1.000 & 27 & 6.5 & 585 & 0.028 \\
+Japanese  & Whisper  & 2.60 & 1.000 & 0.000 & 493 & 112.2 & 10{,}435 & 0.000 \\
+          & language & 2.55 & 1.000 & 0.000 & 479 & 108.6 & 9{,}983 & 0.002 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig4_sequential_trajectories.pdf}
+\caption{One simulated audit per language under the language-aware normalizer. Solid: certify wealth; dotted: refute wealth. A decision is made when either reaches $1/\alpha = 20$.}
+\label{fig:traj}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig5_audio_needed.pdf}
+\caption{Utterances needed for a decision: the sequential test (median), a fixed-sample Hoeffding bound with the same validity, and an oracle $z$-test given the true WER and variance.}
+\label{fig:audio}
+\end{figure}
+
+\subsection{Preference claims}
+\label{sec:results-pref}
+
+Two recent text-to-speech launch posts report blind-preference shares without vote counts \citep{cartesia2026sonic36,elevenlabs2026v4}. Table~\ref{tab:pref} lists, for each published share, the independent votes an exact test needs to reject 50\%, the same under clustering, and the betting test's median. Shares of 86\% and above needed at most 8 independent votes, and 25 to 39 when votes cluster with $\rho = 0.20$. The lowest share, 55\% (hi-IN), needed 281 independent votes, 548 at $\rho = 0.05$ and 1{,}349 at $\rho = 0.20$; the betting test needed a median of 1{,}467. Figure~\ref{fig:pref} shows the full curve.
+
+\begin{table}[t]
+\caption{Votes needed before a published preference share separates from 50\% (one-sided, $\alpha = 0.05$). Clustered columns use 20 votes per listener or line.}
+\label{tab:pref}
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Source & Comparison & share & independent & $\rho=0.05$ & $\rho=0.20$ & sequential \\
+\midrule
+\citet{cartesia2026sonic36} & en-US vs Eleven v3 & 0.92 & 5 & 10 & 25 & 8 \\
+ & es-ES vs Eleven v3 & 0.91 & 5 & 10 & 25 & 11 \\
+ & fr-FR vs Eleven v3 & 0.86 & 8 & 16 & 39 & 11 \\
+ & en-AU vs Eleven v3 & 0.77 & 13 & 26 & 63 & 16 \\
+ & en-GB vs Eleven v3 & 0.72 & 16 & 32 & 77 & 28 \\
+ & es-MX vs Eleven v3 & 0.70 & 18 & 36 & 87 & 32 \\
+ & pt-BR vs Eleven v3 & 0.67 & 28 & 55 & 135 & 46 \\
+ & hi-IN vs Gemini 3.1 & 0.55 & 281 & 548 & 1{,}349 & 1{,}467 \\
+\citet{elevenlabs2026v4} & lowest of range & 0.65 & 30 & 59 & 145 & 81 \\
+ & headline & 0.75 & 13 & 26 & 63 & 20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig6_preference_votes.pdf}
+\caption{Votes needed to reject 50\% as a function of the published share, for independent and clustered votes. Points: published shares.}
+\label{fig:pref}
+\end{figure}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The central result is that a single set of transcripts supports opposite verdicts on the same published tier, depending on choices the tier does not state. This is measured, not inferred: Table~\ref{tab:tiers} holds the system, the audio and the references fixed and changes only the scoring. For Turkish, Finnish and Japanese the tier is supported under the scoring a careful evaluator would choose for those languages, and the Whisper normalizer alone is enough to put Turkish and Finnish in doubt. For Malayalam and Kannada no word-level scoring we tried brings the error near 5\%, while character-level scoring does. We cannot tell which scoring the vendor used; our data are consistent with a character-level or fragment-level measure for these two languages, and with any of the measures for Turkish, Finnish and Japanese. A reader of the tier table cannot tell either, which is the problem.
+
+The mechanisms in \S\ref{sec:results-mech} explain why the Whisper normalizer is not a neutral default outside English. Bracket deletion appears intended for transcripts in which brackets mark non-speech events; in FLEURS, as in many read-speech corpora, bracketed text is spoken, so a correct transcript is penalised. Splitting at combining marks has the opposite sign in Brahmic scripts: it turns a word metric into something closer to a sub-word metric and makes Malayalam look twice as good as a word metric would. The same normalizer therefore inflates error in some languages and deflates it in others, so it cannot be corrected by a constant. The numerals result points the same way as the Polish study of \citet{kacprzak2026digits} in all six languages we studied, and for Hungarian it is the difference between straddling the bound and clearing it. Removing utterances also changes the sample, so this is an upper estimate of the numeral effect rather than a clean one.
+
+The sequential test behaves as Ville's inequality says it should: at the bound, where any decision is wrong, it decided in at most 4\% of audits. Its cost is asymmetric. A failing claim is cheap to refute because each draw can only lose a bounded amount for the refuter, who may bet heavily; a passing claim is expensive to certify because any draw might be a total failure, so the certifier must bet small. In practice an auditor can refute a clearly wrong tier in minutes of audio and needs roughly two hours to certify a correct one at a 2.5-point margin. Against a fixed-sample bound with the same guarantee this is a saving of one to two orders of magnitude; against a test that already knows the answer it is a loss, which is the price of not knowing it. The cap is not a free parameter: halving it halves the audio but broke validity wherever an utterance exceeded it.
+
+For vendors, the implication is constructive. A tier claim becomes checkable with three additions: the normalizer (or its code), the unit, and the test set with its size. With those, anyone can run the audit above and either confirm the claim or show where it fails, and a vendor can run it on its own claims before publishing. The preference analysis points the same way: a large share is credible with few votes, but a share near 50\% needs hundreds to over a thousand clustered votes, and without the count a reader cannot tell which case a claim is in.
+
+\section{Limitations}
+\label{sec:limitations}
+
+The study uses one system, one public read-speech test set and 200 utterances per language; the vendor's own test data are unknown, so we test the tier against FLEURS, not against the vendor's measurement. Conversational, noisy or domain-specific audio may give different values, and a second system would show whether the mechanisms move other systems by similar amounts; the scoring code accepts any transcript. The sequential results are simulated by drawing from the 200 transcribed utterances as a finite population; a live audit draws new utterances from the full test frame, and its results would differ by the sampling error of that population. We did not build number verbalizers for these languages and estimated the numeral effect by excluding utterances, which confounds it with a change of sample. The per-utterance cap of 2 is an assumption; it bound for one of the 1{,}200 utterances scored with Whisper basic and for none scored with the language-aware normalizer, and an audit with a lower cap needs a reason to believe it.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+A per-language accuracy tier is a statement about a scoring procedure as much as about a system. On public data, the tiers of five of six languages we examined depended on which normalizer and which unit were used, and two widely shared normalizer behaviours, bracket deletion and combining-mark splitting, moved scores in opposite directions in different scripts. Publishing the normalizer, the unit and the test set would make such claims checkable. The length-proportional betting test makes the check affordable: minutes of audio to refute a clearly wrong claim and about two hours to certify a correct one, with an error guarantee that holds whenever the audit stops.
+
+\subsubsection*{Reproducibility statement}
+All experiments run from the public repository. The transcripts used in every table, with references, sentence identifiers and clip durations, are stored in \texttt{results/manifests/}, so every table and figure regenerates offline from the scripts in \texttt{experiments/}. The repository includes unit tests for the normalizers and for the validity and nonnegativity of the betting test.
+
+\subsubsection*{Declaration of generative AI use}
+The scientific contribution of this work is the author's own: the research idea, the questions studied, the study design, the choice of datasets and the interpretation of the results. Under the author's direction, a large language model (Claude, Anthropic) was used as a tool to implement and run the experiments, to draft and edit the manuscript text, and to script the verification of the reference list and the reported numbers. The author reviewed all content and takes full responsibility for the published article.
+
+\subsubsection*{Broader impact statement}
+The audit is meant to make accuracy claims easier to trust and to check. It could be used selectively, for example by running it only against a competitor's claims, or by choosing the normalizer that favours a preferred result; Table~\ref{tab:tiers} shows how much room that leaves, which is why we recommend publishing the scoring choices alongside any tier.
+
+\bibliography{refs}
+\bibliographystyle{tmlr}
+
+\appendix
+\section{API and scoring settings}
+\label{app:settings}
+
+Batch endpoint \texttt{POST /v1/speech-to-text}; fields \texttt{model\_id = scribe\_v2}, \texttt{language\_code} = ISO 639-1 code of the language, \texttt{tag\_audio\_events = false}, \texttt{timestamps\_granularity = none}; audio sent as the original FLEURS WAV files; one request per utterance; requests made on 8 October 2026. The response field \texttt{text} is the hypothesis. Normalizers, the bootstrap and the betting test are in \texttt{src/asr\_tier\_audit/}; the experiment scripts are \texttt{exp1}--\texttt{exp4} in \texttt{experiments/}. Random seeds: 0 for sampling and the bootstrap, 0 and 7 for the simulations and the plotted trajectories.
+
+\end{document}

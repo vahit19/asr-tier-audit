@@ -1,0 +1,11 @@
+source,comparison,published_share,votes_iid,votes_rho_0.05,votes_rho_0.20,median_votes_sequential
+Cartesia Sonic-3.6,en-US vs Eleven v3,0.92,5,10,25,8.0
+Cartesia Sonic-3.6,es-ES vs Eleven v3,0.91,5,10,25,11.0
+Cartesia Sonic-3.6,fr-FR vs Eleven v3,0.86,8,16,39,11.0
+Cartesia Sonic-3.6,en-AU vs Eleven v3,0.77,13,26,63,16.0
+Cartesia Sonic-3.6,en-GB vs Eleven v3,0.72,16,32,77,28.0
+Cartesia Sonic-3.6,es-MX vs Eleven v3,0.7,18,36,87,32.0
+Cartesia Sonic-3.6,pt-BR vs Eleven v3,0.67,28,55,135,46.0
+Cartesia Sonic-3.6,hi-IN vs Gemini 3.1,0.55,281,548,1349,1467.0
+ElevenLabs Eleven v4,lowest of range (65-81%),0.65,30,59,145,81.0
+ElevenLabs Eleven v4,headline (~75%),0.75,13,26,63,19.5
