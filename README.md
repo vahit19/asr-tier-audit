@@ -4,8 +4,7 @@
 
 This repo turns a published accuracy tier into something you can check, and gives the check that settles it: **minutes of audio to refute a wrong claim, about two hours to certify a right one, with a ≤ 5% error guarantee that holds whenever you stop.**
 
-<a href="media/video_overview.mp4"><img src="media/video_thumbnail.png" width="420" alt="Video overview"></a><br>
-<sub>▶ 8-minute video overview, narrated in the first person by my AI digital twin</sub>
+https://github.com/user-attachments/assets/798618f0-4738-4007-b005-afe4abe9cbfc
 
 ![Error rate by normalizer](figures/fig2_wer_by_normalizer.png)
 
